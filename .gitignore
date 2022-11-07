@@ -1,0 +1,7 @@
+
+.idea/
+
+docker/db/master/.data/
+
+.DS_Store
+/docker/nginx/nginx_log/

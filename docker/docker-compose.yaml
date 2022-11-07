@@ -1,0 +1,71 @@
+version: '3'
+
+networks:
+  test-network:
+    driver: bridge
+
+services:
+
+        test:
+            container_name: test
+            build:
+                context: ./php-fpm
+                args:
+                    - timezone=${TZ}
+            networks:
+                - test-network
+            ports:
+                - "9000:9000"
+            volumes:
+                - ./../test:/test:rw,cached
+                - test_log:/test/var/log
+            env_file:
+                - .env
+            depends_on:
+                - db-master
+
+        nginx:
+            container_name: nginx
+            build:
+                context: ./nginx
+                args:
+                    - timezone=${TZ}
+            ports:
+                - "81:80"
+                - "443:443"
+            networks:
+                - test-network
+            depends_on:
+                - test
+            volumes:
+                - ./../test/public:/test/public
+                - ./nginx/ssl:/etc/nginx/ssl
+                - ./nginx/conf.d:/etc/nginx/conf.d
+                - ./nginx/nginx_log:/var/log/nginx
+                - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+            env_file:
+                - .env
+            command: /bin/bash -c "exec nginx -g 'daemon off;'"
+
+        db-master:
+            container_name: db-master
+            image: mysql:latest
+            env_file:
+                - ./db/master/.env.master
+            ports:
+                - "3307:3306"
+            volumes:
+                - ./db/master/master.sql:/docker-entrypoint-initdb.d/start.sql
+                - ./db/master/mysql.master.cnf:/etc/mysql/conf.d/mysql.master.cnf
+                - ./db/master/.data/mysql:/var/lib/mysql:rw
+            networks:
+                - test-network
+
+
+
+volumes:
+    nginx_log:
+    test_log:
+    db:
+        driver: local
+
